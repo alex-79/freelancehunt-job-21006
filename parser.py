@@ -30,7 +30,7 @@ def getNextPage(page):
 
 def getReview(url):
 
-    print(url)
+    print('   > ' + url)
     page = getPage(url)
 
     id = page.find('meta', attrs={"itemprop": "productID"}).get('content')
@@ -39,32 +39,38 @@ def getReview(url):
     list = []
     for review in reviews:
         data = {}
+        data['url'] = url
         data['author'] = review.find('span', attrs={"itemprop": "author"}).text
         data['date'] = review.find('meta', attrs={"itemprop": "datePublished"}).get('content')
-        data['rating'] = review.find('meta', attrs={"itemprop": "ratingValue"}).get('content')
-        data['review'] = review.find('p', attrs={"itemprop": "reviewBody"}).text
+        data['stars'] = review.find('meta', attrs={"itemprop": "ratingValue"}).get('content')
+        data['title'] = ''
+        data['content'] = review.find('p', attrs={"itemprop": "reviewBody"}).text
 
         list.append(data)
 
     if len(list):
-        result = {}
-        result[id] = list
 
         f = open(path + '/' + id + '.json', 'w', encoding='utf-8')
-        f.write(json.dumps(result, ensure_ascii=False))
+        f.write(json.dumps(list, ensure_ascii=False))
         f.close()
 
 
 def parser(url):
+
+    print('* ' + url)
     page = getPage(url)
 
     reviews = page.find_all('div', attrs={"class": "simple-slider-list__reviews"})
+    
+    i = 0
     for review in reviews:
         if review.a:
             review_url = base_url + review.a.get('href')
             getReview(review_url)
-
-            # exit()
+            
+            i += 1
+            if i == 3:
+                return
 
     url = getNextPage(page)
     if url:
@@ -80,11 +86,15 @@ def main():
     home_page = getPage(base_url + '/ua/')
     categories = home_page.find_all('li', attrs={"class": "menu-column-list__item"})
 
+    i = 0
+
     for category in categories:
         category_url = base_url + category.a.get('href')
         parser(category_url)
 
-        exit()
+        i += 1
+        if i == 3:
+            exit()
 
 
 main()
